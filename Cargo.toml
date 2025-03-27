@@ -4,5 +4,4 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-tokio = { version = "1", features = ["full"] }
-hyper = { version = "0.14", features = ["server", "http1", "tcp"] }
+tiny_http = "0.12"

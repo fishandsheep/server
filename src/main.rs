@@ -1,44 +1,25 @@
-use hyper::{Body, Request, Response, Server};
-use hyper::service::{make_service_fn, service_fn};
-use std::convert::Infallible;
-use std::net::SocketAddr;
-use tokio::net::TcpListener;
-use hyper::body::to_bytes;
+use std::env;
+use tiny_http::{Server, Response};
 
-async fn handle_request(req: Request<Body>, addr: SocketAddr) -> Result<Response<Body>, Infallible> {
-    // 先克隆 request 以便后续打印
-    let req_info = format!("{:?}", req); 
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    let binding = "8080".to_string();
+    let port = args.get(1).unwrap_or(&binding); 
+    let addr = format!("0.0.0.0:{}", port);
 
-    // 提取 body
-    let body_bytes = to_bytes(req.into_body()).await.unwrap_or_default();
-    let body_str = String::from_utf8_lossy(&body_bytes);
-
-    println!("Received request from: {}", addr);
-    println!("Request:\n{}", req_info);
-    println!("Body:\n{}", body_str);
-
-    Ok(Response::new(Body::from("Request received")))
-}
-
-#[tokio::main]
-async fn main() {
-    let addr: SocketAddr = ([0, 0, 0, 0], 8080).into();
-    let listener = TcpListener::bind(addr).await.expect("Failed to bind to address");
-
-    let make_svc = make_service_fn(move |conn: &hyper::server::conn::AddrStream| {
-        let remote_addr = conn.remote_addr();
-        async move {
-            Ok::<_, Infallible>(service_fn(move |req| handle_request(req, remote_addr)))
-        }
-    });
-
-    let server = Server::from_tcp(listener.into_std().unwrap())
-        .unwrap()
-        .serve(make_svc);
-
+    let server = Server::http(&addr).expect("Failed to start server");
     println!("Listening on http://{}", addr);
 
-    if let Err(e) = server.await {
-        eprintln!("Server error: {}", e);
+    for request in server.incoming_requests() {
+        // 处理 remote_addr 为空的情况
+        let remote_addr = request.remote_addr()
+            .map(|addr| addr.to_string()) // 转换为 String
+            .unwrap_or_else(|| "Unknown".to_string()); // 处理 None 情况
+        
+        println!("Received request from: {}", remote_addr);
+        println!("Request: {:?}", request);
+
+        let response = Response::from_string("Hello, Rust!\n");
+        request.respond(response).unwrap();
     }
 }
