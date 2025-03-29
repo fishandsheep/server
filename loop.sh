@@ -1,15 +1,19 @@
 #!/bin/bash
 
-# 检查参数是否正确
-if [ "$#" -ne 3 ]; then
-    echo "Usage: $0 <ip> <port> <num>"
-    exit 1
-fi
+# 默认值
+IP="127.0.0.1"
+PORT="8080"
+NUM=5
 
-# 解析参数
-IP="$1"
-PORT="$2"
-NUM="$3"
+# 解析命令行参数
+while getopts "h:p:n:" opt; do
+    case "$opt" in
+        h) IP="$OPTARG" ;;
+        p) PORT="$OPTARG" ;;
+        n) NUM="$OPTARG" ;;
+        ?) echo "Usage: $0 [-h ip] [-p port] [-n num]"; exit 1 ;;
+    esac
+done
 
 # 确保 num 是正整数
 if ! [[ "$NUM" =~ ^[0-9]+$ ]] || [ "$NUM" -lt 1 ]; then
